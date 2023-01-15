@@ -1,7 +1,7 @@
 import random
 
 slots = ["  " for i in range(9)]
-player_1_wins = player_2_wins = tie = computer_wins = 0
+player_1_wins = player_2_wins = tie = computer_wins = computer_turns = 0
 WINNING_COMBINATIONS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]
 
 def tic_tac_board(player, player_choice):
@@ -24,16 +24,75 @@ def get_choice_input(choice_list):
         else:
             print(f"Invalid choice. Please choose b/w {choice_list[0]}-{choice_list[-1]}")
 
-def check_valid_choice(player):
+def get_empty_slots():
+    return [i for i in range(9) if slots[i] == "  "]
+
+def easy_mood_choose_randomly():
+    return random.choice(get_empty_slots()) + 1  # computer selecting randomly empty slot
+
+def get_slots(position):
+    return [i for i in range(9) if slots[i] == position]
+def check_must_in_slot(combination, slot_check):
+    must_slot = [i for i in combination if i not in slot_check][0]
+    if must_slot in get_empty_slots():
+        return must_slot + 1
+def hard_mood_using_ai():
+    global computer_turns
+    computer_turns += 1
+    empty_slots = get_empty_slots()
+    player_slots = get_slots(" O")
+    computer_slots = get_slots(" X")
+
+    if computer_turns == 1:
+        return 5 if 4 in empty_slots else random.choice([0, 2, 6, 8]) + 1
+
+    if computer_turns == 2:
+        for combination in WINNING_COMBINATIONS:
+            if player_slots[0] in combination and player_slots[1] in combination:
+                must_slot = check_must_in_slot(combination, player_slots)
+                if must_slot:
+                    return must_slot
+        else:
+            return random.choice(get_empty_slots()) + 1  # for extra hard win send these to corners if player 1 is in center
+
+    if computer_turns == 3:
+        for combination in WINNING_COMBINATIONS:
+            if computer_slots[0] in combination and computer_slots[1] in combination:
+                must_slot = check_must_in_slot(combination, computer_slots)
+                if must_slot:
+                    return must_slot
+        for combination in WINNING_COMBINATIONS:
+            if (player_slots[0] in combination and player_slots[1] in combination) or (player_slots[0] in combination and player_slots[2] in combination) or (player_slots[1] in combination and player_slots[2] in combination):
+                must_slot = check_must_in_slot(combination, player_slots)
+                if must_slot:
+                    return must_slot
+        return random.choice(empty_slots) + 1
+
+    if computer_turns == 4:
+        for combination in WINNING_COMBINATIONS:
+            if (computer_slots[0] in combination and computer_slots[1] in combination) or (computer_slots[0] in combination and computer_slots[2] in combination) or (computer_slots[1] in combination and computer_slots[2] in combination):
+                must_slot = check_must_in_slot(combination, computer_slots)
+                if must_slot:
+                    return must_slot
+        for combination in WINNING_COMBINATIONS:
+            if (player_slots[0] in combination and player_slots[1] in combination) or (player_slots[0] in combination and player_slots[2] in combination) or (player_slots[0] in combination and player_slots[3] in combination) or (player_slots[1] in combination and player_slots[2] in combination) or (player_slots[1] in combination and player_slots[3] in combination) or (player_slots[2] in combination and player_slots[3] in combination):
+                must_slot = check_must_in_slot(combination, player_slots)
+                if must_slot:
+                    return must_slot
+        return random.choice(empty_slots) + 1
+
+
+def check_valid_choice(player, mood=0):
     if player == 1:
         print("PLAYER 1.", end=" ")
     elif player == 2:
         print("PLAYER 2.", end=" ")
     if player == 3:  # computer
         print("COMPUTER CHOOSE:")
-        empty_slot_list = [i for i in range(9) if slots[i] == "  "]
-        return random.choice(empty_slot_list) + 1  # computer selecting randomly empty slot
-
+        if mood == 1:
+            return easy_mood_choose_randomly()
+        elif mood == 2:
+            return hard_mood_using_ai()
     player_choice = 0
     while not player_choice:
         choice_ = get_choice_input(choice_list=[1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -46,7 +105,6 @@ def check_valid_choice(player):
 def goal(val, player):
     for combination in WINNING_COMBINATIONS:
         if all(slots[i] == val for i in combination):
-            print(combination)                      # think about it in the morning
             global player_1_wins, player_2_wins, computer_wins
             if player == 1:
                 player_1_wins += 1
@@ -105,7 +163,7 @@ def start_2_player_game():
     else:
         return
 
-def start_game_with_computer():
+def start_game_with_computer(computer_level):
     tic_tac_board(player=False, player_choice="")
     while True:
         # Player 1 turn
@@ -115,18 +173,22 @@ def start_game_with_computer():
         if match_tie():
             break
         # COMPUTER TURN
-        tic_tac_board(player=3, player_choice=check_valid_choice(3))
+        tic_tac_board(player=3, player_choice=check_valid_choice(3, computer_level))
         if goal(" X", 3):
             break
     show_result("COMPUTER")
     if keep_continue():
-        start_game_with_computer()
+        global computer_turns
+        computer_turns = 0
+        start_game_with_computer(computer_level)
     else:
         return
 
 print("Lets start the game!\n1. 2 Player Game\n2. Play with computer")
 choice = get_choice_input(choice_list=[1, 2])
 if choice == 2:
-    start_game_with_computer()
+    print("Choose Level!\n1. Easy\n2. Hard")
+    level = get_choice_input(choice_list=[1, 2])
+    start_game_with_computer(level)
 else:
     start_2_player_game()
